@@ -6,7 +6,7 @@
 <body>
   <video id="video" autoplay playsinline></video>
   <script>
-    const ws = new WebSocket("ws://localhost:7000/ws")
+    const ws = new WebSocket("ws://localhost:3000/ws")
     let pc = new RTCPeerConnection({
       iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
     });
@@ -18,10 +18,14 @@
     ws.onmessage = async (event) => {
       let message = JSON.parse(event.data);
       console.log("Received:", message);
-
-      if (message.method === "answer") {
-        await pc.setRemoteDescription(new RTCSessionDescription(message.params));
-      } else if (message.method === "candidate") {
+      if (message.type === "offer") {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(JSON.parse(message.data)));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+        sendMessage("answer", JSON.stringify(answer));
+      } else if (message.method === "answer") {
+        await pc.setRemoteDescription(new RTCSessionDescription(message.data));
+      } else if (message.method === "ice-candidate") {
         await pc.addIceCandidate(new RTCIceCandidate(message.params));
       }
     };
@@ -31,36 +35,19 @@
 
       navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then((stream) => {
+          document.getElementById("localVideo").srcObject = stream;
           stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
           return pc.createOffer();
         })
-        .then(offer => {
-          return pc.setLocalDescription(offer);
-        })
-        .then(() => {
-          ws.send(JSON.stringify({
-            jsonrpc: "2.0",
-            id: 1,
-            method: "offer",
-            params: { sdp: pc.localDescription.sdp }
-          }));
-        });
+        .catch((error) => console.error("Error accessing media devices.", error))
     };
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        fetch("http://localhost:7000/ws", {
-          method: "POST",
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: 1,
-            method: "candidate",
-            params: { candidate: event.candidate }
-          })
-        });
+        sendMessage("ice-candidate", JSON.stringify(event.candidate));
       }
     };
   </script>
 </body>
 </html>
-
