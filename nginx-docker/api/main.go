@@ -32,7 +32,7 @@ func streamHandler(w http.ResponseWriter, r *http.Request) {
 		"-i", "pipe:0",
 		"-c:v", "libx264", "-preset", "ultrafast", "-tune", "zerolatency",
 		"-c:a", "aac",
-		"-f", "flv", fmt.Sprintf("rtmp://localhost:1935/live/%s", room),
+		"-f", "flv", fmt.Sprintf("rtmp://nginx:1935/live/%s", room),
 	)
 
     fmt.Println(room)

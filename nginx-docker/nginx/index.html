@@ -27,7 +27,7 @@
 
   <video id="stream" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360"
     data-setup='{}'>
-    <source id="videoSource" src="http://localhost:8080/hls/room1/index.m3u8" type="application/x-mpegURL">
+    <source id="videoSource" src="http://nginx/hls/room1/index.m3u8" type="application/x-mpegURL">
   </video>
 
   <script>
@@ -40,9 +40,7 @@
         return;
       }
 
-      // TODO - Containerize the WebSocket server and use
-      // a virtual network to connect the client and server
-      const ws = new WebSocket("ws://localhost:3000/stream?room=" + streamUrl);
+      const ws = new WebSocket(`ws://${window.location.host}:3000/stream?room=${streamUrl}`);
 
       const recorder = new MediaRecorder(stream, { mimeType: "video/webm; codecs=vp8,opus" });
 
@@ -64,8 +62,8 @@
       }
 
       const videoSource = document.getElementById('videoSource');
-      videoSource.src = `http://localhost:8080/hls/${streamUrl}/index.m3u8`;
-      
+      videoSource.src = `http://${window.location.host}/hls/${streamUrl}/index.m3u8`;
+
       const player = videojs('stream');
       player.src({ type: "application/x-mpegURL", src: videoSource.src });
       player.load();

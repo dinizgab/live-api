@@ -1,8 +1,23 @@
+networks:
+  nginx:
+  api:
 services:
   nginx:
-    build: .
+    build: ./nginx
     ports:
-      - "8080:80"
+      - "80:80"
       - "1935:1935"
     volumes:
-      - "./tmp:/opt/data/hls"
+      - "./tmp:/tmp/hls"
+    networks:
+      - nginx
+      - api
+  api:
+    build: ./api
+    ports:
+      - "3000:3000"
+    networks:
+      - nginx
+      - api
+    depends_on:
+      - nginx
