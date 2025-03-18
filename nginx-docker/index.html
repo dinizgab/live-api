@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Player de Vídeo</title>
+  <link href="https://unpkg.com/video.js/dist/video-js.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/video.js/dist/video.min.js"></script>
+
+</head>
+
+<body>
+  <div style="margin-top: 20px;">
+      Create a new stream
+  </div>
+  <input type="text" id="newStreamUrl" placeholder="Enter the stream room name">
+  <button id="startStream">Start Streaming</button>
+
+  <div style="margin-top: 20px;">
+      or join an existing stream
+  </div>
+  <input type="text" id="joinStreamUrl" placeholder="Enter the stream room name">
+  <button id="joinStream">Join Stream</button>
+
+  <video id="stream" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360"
+    data-setup='{}'>
+    <source id="videoSource" src="http://localhost:8080/hls/room1/index.m3u8" type="application/x-mpegURL">
+  </video>
+
+  <script>
+    const startButton = document.getElementById('startStream');
+    startButton.addEventListener('click', async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      const streamUrl = document.getElementById('newStreamUrl').value;
+      if (!streamUrl) {
+        alert("Please enter a stream room name!");
+        return;
+      }
+
+      // TODO - Containerize the WebSocket server and use
+      // a virtual network to connect the client and server
+      const ws = new WebSocket("ws://localhost:3000/stream?room=" + streamUrl);
+
+      const recorder = new MediaRecorder(stream, { mimeType: "video/webm; codecs=vp8,opus" });
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+          ws.send(event.data);
+        }
+      };
+
+      recorder.start(1000);
+    });
+
+    const joinButton = document.getElementById('joinStream');
+    joinButton.addEventListener('click', async () => {
+      const streamUrl = document.getElementById('joinStreamUrl').value;
+      if (!streamUrl) {
+        alert("Please enter a stream room name!");
+        return;
+      }
+
+      const videoSource = document.getElementById('videoSource');
+      videoSource.src = `http://localhost:8080/hls/${streamUrl}/index.m3u8`;
+      
+      const player = videojs('stream');
+      player.src({ type: "application/x-mpegURL", src: videoSource.src });
+      player.load();
+      player.play();
+    })
+
+    const player = videojs('stream');
+
+    player.ready(function () {
+      this.controlBar.addChild('CurrentTimeDisplay');
+      this.controlBar.addChild('TimeDivider');
+      this.controlBar.addChild('DurationDisplay');
+      this.controlBar.addChild('ProgressControl');
+      this.controlBar.addChild('PlaybackRateMenuButton');
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,8 @@
+services:
+  nginx:
+    build: .
+    ports:
+      - "8080:80"
+      - "1935:1935"
+    volumes:
+      - "./tmp:/opt/data/hls"

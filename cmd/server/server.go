@@ -15,8 +15,8 @@ type Message struct {
 
 type Server struct {
 	conns map[*websocket.Conn]bool
-	mu sync.Mutex
-	//Rooms map[string][]*websocket.Conn
+	mu    sync.Mutex
+	Rooms map[string][]*websocket.Conn
 }
 
 func NewServer() *Server {
@@ -42,7 +42,16 @@ func (s *Server) HandleWS(conn *websocket.Conn) {
 			continue
 		}
 
-		log.Printf("Received WebRTC Signal: %s from %s", msg.Type, conn.RemoteAddr())
+		switch msg.Type {
+		case "join":
+			s.joinRoom(msg.Data, conn)
+			break
+		case "message":
+			break
+		default:
+			break
+		}
+
 		s.broadcast(msg, conn)
 	}
 }
@@ -73,18 +82,18 @@ func (s *Server) removeConnection(conn *websocket.Conn) {
 	log.Printf("Connection closed: %s\n", conn.RemoteAddr())
 }
 
-//func (s *Server) joinRoom(room string, conn *websocket.Conn) {
-//s.mu.Lock()
-//defer s.mu.Unlock()
-//
-//if _, ok := s.Rooms[room]; !ok {
-//s.Rooms[room] = append(s.Rooms[room], conn)
-//}
-//
-//if _, ok := s.conns[conn]; !ok {
-//s.conns[conn] = room
-//}
-//}
+func (s *Server) joinRoom(room string, conn *websocket.Conn) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, ok := s.Rooms[room]; !ok {
+		s.Rooms[room] = append(s.Rooms[room], conn)
+	}
+
+	if _, ok := s.conns[conn]; !ok {
+		s.conns[conn] = true
+	}
+}
 
 func main() {
 	server := NewServer()
